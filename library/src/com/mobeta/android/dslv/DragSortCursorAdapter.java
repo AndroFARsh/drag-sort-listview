@@ -4,10 +4,11 @@ import java.util.ArrayList;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.support.v4.widget.CursorAdapter;
 import android.util.SparseIntArray;
 import android.view.View;
 import android.view.ViewGroup;
-import android.support.v4.widget.CursorAdapter;
+import android.widget.ListAdapter;
 
 
 /**
@@ -36,6 +37,7 @@ public abstract class DragSortCursorAdapter extends CursorAdapter implements Dra
 
     private ArrayList<Integer> mRemovedCursorPositions = new ArrayList<Integer>();
     
+    @Deprecated
     public DragSortCursorAdapter(Context context, Cursor c) {
         super(context, c);
     }

@@ -1,30 +1,66 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <declare-styleable name="DragSortListView">
+
+    <attr name="dragSortListView" format="reference" />
+    <attr name="dragSortExpandableListView" format="reference" />
+
     <attr name="collapsed_height" format="dimension" />
     <attr name="drag_scroll_start" format="float" />
     <attr name="max_drag_scroll_speed" format="float" />
     <attr name="float_background_color" format="color" />
     <attr name="remove_mode">
-      <enum name="clickRemove" value="0" />
-      <enum name="flingRemove" value="1" />
+        <enum name="clickRemove" value="0" />
+        <enum name="flingRemove" value="1" />
     </attr>
-    <attr name="track_drag_sort" format="boolean"/>
-    <attr name="float_alpha" format="float"/>
-    <attr name="slide_shuffle_speed" format="float"/>
-    <attr name="remove_animation_duration" format="integer"/>
-    <attr name="drop_animation_duration" format="integer"/>
+    <attr name="track_drag_sort" format="boolean" />
+    <attr name="float_alpha" format="float" />
+    <attr name="slide_shuffle_speed" format="float" />
+    <attr name="remove_animation_duration" format="integer" />
+    <attr name="drop_animation_duration" format="integer" />
     <attr name="drag_enabled" format="boolean" />
     <attr name="sort_enabled" format="boolean" />
     <attr name="remove_enabled" format="boolean" />
     <attr name="drag_start_mode">
-      <enum name="onDown" value="0" />
-      <enum name="onMove" value="1" />
-      <enum name="onLongPress" value="2"/>
+        <enum name="onDown" value="1" />
+        <enum name="onMove" value="2" />
+        <enum name="onLongPress" value="4" />
+        <enum name="onTwoFingersDown" value="16" />
+        <enum name="onTwoFingersMove" value="32" />
+        <enum name="onTwoFingersLongPress" value="64" />
     </attr>
     <attr name="drag_handle_id" format="integer" />
     <attr name="fling_handle_id" format="integer" />
     <attr name="click_remove_id" format="integer" />
     <attr name="use_default_controller" format="boolean" />
-  </declare-styleable>
+
+    <declare-styleable name="DragSortListView">
+        <attr name="collapsed_height" />
+        <attr name="drag_scroll_start" />
+        <attr name="max_drag_scroll_speed" />
+        <attr name="float_background_color" />
+        <attr name="remove_mode" />
+        <attr name="track_drag_sort" />
+        <attr name="float_alpha" />
+        <attr name="slide_shuffle_speed" />
+        <attr name="remove_animation_duration" />
+        <attr name="drop_animation_duration" />
+        <attr name="drag_enabled" />
+        <attr name="sort_enabled" />
+        <attr name="remove_enabled" />
+        <attr name="drag_start_mode" />
+        <attr name="drag_handle_id" />
+        <attr name="fling_handle_id" />
+        <attr name="click_remove_id" />
+        <attr name="use_default_controller" />
+    </declare-styleable>
+    <declare-styleable name="DragSortExpandableListView">
+        <attr name="groupIndicator" format="reference" />
+        <attr name="childIndicator" format="reference" />
+        <attr name="indicatorLeft" format="dimension" />
+        <attr name="indicatorRight" format="dimension" />
+        <attr name="childIndicatorLeft" format="dimension" />
+        <attr name="childIndicatorRight" format="dimension" />
+        <attr name="childDivider" format="reference|color" />
+    </declare-styleable>
+
 </resources>

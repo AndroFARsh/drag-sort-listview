@@ -1,6 +1,7 @@
 package com.mobeta.android.dslv;
 
 import android.graphics.Point;
+import android.support.v4.view.GestureDetectorCompat;
 import android.view.GestureDetector;
 import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
@@ -19,16 +20,28 @@ import android.widget.AdapterView;
  * {@link DragSortListView#setFloatViewManager()} of your
  * {@link DragSortListView} instance.
  */
-public class DragSortController extends SimpleFloatViewManager implements View.OnTouchListener, GestureDetector.OnGestureListener {
+public class DragSortController extends SimpleFloatViewManager implements View.OnTouchListener {
 
     /**
      * Drag init mode enum.
      */
-    public static final int ON_DOWN = 0;
-    public static final int ON_DRAG = 1;
-    public static final int ON_LONG_PRESS = 2;
+    public static final int ON_DOWN = 0x01;
+    public static final int ON_DRAG = 0x02;
+    public static final int ON_LONG_PRESS = 0x04;
+    
+    public static final int ON_TWO_FINGERS_DOWN = 0x10;
+    public static final int ON_TWO_FINGERS_DRAG = 0x20;
+    public static final int ON_TWO_FINGERS_LONG_PRESS = 0x40;
+    
+    private static final int ON_DOWN_MASK = ON_DOWN | ON_TWO_FINGERS_DOWN;
+    private static final int ON_DRAG_MASK = ON_DRAG | ON_TWO_FINGERS_DRAG;
+    private static final int ON_LONG_PRESS_MASK = ON_LONG_PRESS | ON_TWO_FINGERS_LONG_PRESS;
+    
+    private static final int ONE_FINGER_MASK = 0x0f;
+    private static final int TWO_FINGERS_MASK = 0xf0;
+    
 
-    private int mDragInitMode = ON_DOWN;
+    private int mDragInitMode = ON_TWO_FINGERS_LONG_PRESS;
 
     private boolean mSortEnabled = true;
 
@@ -46,9 +59,9 @@ public class DragSortController extends SimpleFloatViewManager implements View.O
     private boolean mRemoveEnabled = false;
     private boolean mIsRemoving = false;
 
-    private GestureDetector mDetector;
+    private GestureDetectorCompat mDetector;
 
-    private GestureDetector mFlingRemoveDetector;
+    private GestureDetectorCompat mFlingRemoveDetector;
 
     private int mTouchSlop;
 
@@ -80,6 +93,7 @@ public class DragSortController extends SimpleFloatViewManager implements View.O
 
     private DragSortListView mDslv;
     private int mPositionX;
+	private TwoFingersGestureDetector mTwoFingerDetector;
 
     /**
      * Calls {@link #DragSortController(DragSortListView, int)} with a
@@ -90,7 +104,7 @@ public class DragSortController extends SimpleFloatViewManager implements View.O
      * @param dslv The DSLV instance
      */
     public DragSortController(DragSortListView dslv) {
-        this(dslv, 0, ON_DOWN, FLING_REMOVE);
+        this(dslv, 0, ON_TWO_FINGERS_DOWN, FLING_REMOVE);
     }
 
     public DragSortController(DragSortListView dslv, int dragHandleId, int dragInitMode, int removeMode) {
@@ -112,8 +126,85 @@ public class DragSortController extends SimpleFloatViewManager implements View.O
             int removeMode, int clickRemoveId, int flingHandleId) {
         super(dslv);
         mDslv = dslv;
-        mDetector = new GestureDetector(dslv.getContext(), this);
-        mFlingRemoveDetector = new GestureDetector(dslv.getContext(), mFlingRemoveListener);
+        mDetector = new GestureDetectorCompat(dslv.getContext(), new  GestureDetector.OnGestureListener(){
+
+			@Override
+			public boolean onDown(MotionEvent e) {
+				if ((mDragInitMode & ONE_FINGER_MASK) > 0){
+					return onHandleDown(e);
+				}
+				return false;
+			}
+
+			@Override
+			public void onShowPress(MotionEvent e) {}
+
+			@Override
+			public boolean onSingleTapUp(MotionEvent e) {
+				if ((mDragInitMode & ONE_FINGER_MASK) > 0){
+					return onHandleSingleTapUp(e);
+				}
+				return false;
+			}
+
+			@Override
+			public boolean onScroll(MotionEvent e1, MotionEvent e2,
+					float distanceX, float distanceY) {
+				if ((mDragInitMode & ONE_FINGER_MASK) > 0){
+					return onHandleScroll(e1, e2, distanceX, distanceY);
+				}
+				return false;
+			}
+
+			@Override
+			public void onLongPress(MotionEvent e) {
+				if ((mDragInitMode & ONE_FINGER_MASK) > 0){
+					onHandleLongPress(e);
+				}
+			}
+
+			@Override
+			public boolean onFling(MotionEvent e1, MotionEvent e2,
+					float velocityX, float velocityY) {
+				return false;
+			}});
+        mDetector.setIsLongpressEnabled(true);
+        mTwoFingerDetector = new TwoFingersGestureDetector(dslv.getContext(), new TwoFingersGestureDetector.OnTwoFingersGestureListener() {
+			
+			@Override
+			public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+				if ((mDragInitMode & TWO_FINGERS_MASK) > 0){
+					return onHandleScroll(e1, e2, distanceX, distanceY);
+				}
+				return false; 
+			}
+			
+			@Override
+			public void onLongPress(MotionEvent e) {
+				if ((mDragInitMode & TWO_FINGERS_MASK) > 0){
+					onHandleLongPress(e);
+				}
+			}
+			
+			@Override
+			public boolean onDown(MotionEvent e) {
+				if ((mDragInitMode & TWO_FINGERS_MASK) > 0){
+					return onHandleDown(e);
+				}
+				return false;
+			}
+			
+			@Override
+			public boolean onUp(MotionEvent e) {
+				if ((mDragInitMode & TWO_FINGERS_MASK) > 0){
+					return onHandleSingleTapUp(e);
+				}
+				return false;
+			
+			}
+		});
+        
+        mFlingRemoveDetector = new GestureDetectorCompat(dslv.getContext(), mFlingRemoveListener);
         mFlingRemoveDetector.setIsLongpressEnabled(false);
         mTouchSlop = ViewConfiguration.get(dslv.getContext()).getScaledTouchSlop();
         mDragHandleId = dragHandleId;
@@ -236,11 +327,16 @@ public class DragSortController extends SimpleFloatViewManager implements View.O
 
     @Override
     public boolean onTouch(View v, MotionEvent ev) {
-        if (!mDslv.isDragEnabled() || mDslv.listViewIntercepted()) {
+    	if (!mDslv.isDragEnabled() || mDslv.listViewIntercepted()) {
             return false;
         }
 
-        mDetector.onTouchEvent(ev);
+    	if ((mDragInitMode & TWO_FINGERS_MASK)>0) {
+    		mTwoFingerDetector.onTouchEvent(ev);
+        } else {
+        	mDetector.onTouchEvent(ev);
+        }
+        
         if (mRemoveEnabled && mDragging && mRemoveMode == FLING_REMOVE) {
             mFlingRemoveDetector.onTouchEvent(ev);
         }
@@ -248,6 +344,8 @@ public class DragSortController extends SimpleFloatViewManager implements View.O
         int action = ev.getAction() & MotionEvent.ACTION_MASK;
         switch (action) {
             case MotionEvent.ACTION_DOWN:
+            case MotionEvent.ACTION_POINTER_DOWN:    
+            case MotionEvent.ACTION_MOVE:    
                 mCurrX = (int) ev.getX();
                 mCurrY = (int) ev.getY();
                 break;
@@ -259,6 +357,11 @@ public class DragSortController extends SimpleFloatViewManager implements View.O
                         mDslv.stopDragWithVelocity(true, 0);
                     }
                 }
+            case MotionEvent.ACTION_POINTER_UP:
+                if ((mDragInitMode | TWO_FINGERS_MASK) > 0 ) {
+                	mDslv.stopDragWithVelocity(false, 0);
+                }
+                break;    
             case MotionEvent.ACTION_CANCEL:
                 mIsRemoving = false;
                 mDragging = false;
@@ -356,15 +459,14 @@ public class DragSortController extends SimpleFloatViewManager implements View.O
         return MISS;
     }
 
-    @Override
-    public boolean onDown(MotionEvent ev) {
+    private boolean onHandleDown(MotionEvent ev) {
         if (mRemoveEnabled && mRemoveMode == CLICK_REMOVE) {
             mClickRemoveHitPos = viewIdHitPosition(ev, mClickRemoveId);
         }
-
+        
         mHitPos = startDragPosition(ev);
-        if (mHitPos != MISS && mDragInitMode == ON_DOWN) {
-            startDrag(mHitPos, (int) ev.getX() - mItemX, (int) ev.getY() - mItemY);
+        if (mHitPos != MISS && (mDragInitMode & ON_DOWN_MASK) > 0) {
+        	startDrag(mHitPos, (int) ev.getX() - mItemX, (int) ev.getY() - mItemY);
         }
 
         mIsRemoving = false;
@@ -375,9 +477,7 @@ public class DragSortController extends SimpleFloatViewManager implements View.O
         return true;
     }
 
-    @Override
-    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-
+    private boolean onHandleScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
         final int x1 = (int) e1.getX();
         final int y1 = (int) e1.getY();
         final int x2 = (int) e2.getX();
@@ -387,10 +487,10 @@ public class DragSortController extends SimpleFloatViewManager implements View.O
 
         if (mCanDrag && !mDragging && (mHitPos != MISS || mFlingHitPos != MISS)) {
             if (mHitPos != MISS) {
-                if (mDragInitMode == ON_DRAG && Math.abs(y2 - y1) > mTouchSlop && mSortEnabled) {
+                if (((mDragInitMode & ON_DRAG_MASK) > 0) && Math.abs(y2 - y1) > mTouchSlop && mSortEnabled) {
                     startDrag(mHitPos, deltaX, deltaY);
                 }
-                else if (mDragInitMode != ON_DOWN && Math.abs(x2 - x1) > mTouchSlop && mRemoveEnabled)
+                else if (((mDragInitMode & ON_DOWN_MASK) == 0) && Math.abs(x2 - x1) > mTouchSlop && mRemoveEnabled)
                 {
                     mIsRemoving = true;
                     startDrag(mFlingHitPos, deltaX, deltaY);
@@ -409,36 +509,22 @@ public class DragSortController extends SimpleFloatViewManager implements View.O
         return false;
     }
 
-    @Override
-    public void onLongPress(MotionEvent e) {
+    private void onHandleLongPress(MotionEvent e) {
         // Log.d("mobeta", "lift listener long pressed");
-        if (mHitPos != MISS && mDragInitMode == ON_LONG_PRESS) {
+        if (mHitPos != MISS && ((mDragInitMode & ON_LONG_PRESS_MASK) > 0) ) {
             mDslv.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
             startDrag(mHitPos, mCurrX - mItemX, mCurrY - mItemY);
         }
     }
 
     // complete the OnGestureListener interface
-    @Override
-    public final boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-        return false;
-    }
-
-    // complete the OnGestureListener interface
-    @Override
-    public boolean onSingleTapUp(MotionEvent ev) {
+    private boolean onHandleSingleTapUp(MotionEvent ev) {
         if (mRemoveEnabled && mRemoveMode == CLICK_REMOVE) {
             if (mClickRemoveHitPos != MISS) {
                 mDslv.removeItem(mClickRemoveHitPos - mDslv.getHeaderViewsCount());
             }
         }
         return true;
-    }
-
-    // complete the OnGestureListener interface
-    @Override
-    public void onShowPress(MotionEvent ev) {
-        // do nothing
     }
 
     private GestureDetector.OnGestureListener mFlingRemoveListener =
@@ -465,4 +551,12 @@ public class DragSortController extends SimpleFloatViewManager implements View.O
                 }
             };
 
+	public boolean isValid(MotionEvent e) {
+		if ((mDragInitMode & TWO_FINGERS_MASK) > 0){
+			return e.getPointerCount() == 2;
+		} else if ((mDragInitMode & ONE_FINGER_MASK) > 0){
+			return e.getPointerCount() == 1;
+		}
+		return false;
+	}
 }
