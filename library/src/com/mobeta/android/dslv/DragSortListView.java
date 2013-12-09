@@ -1272,8 +1272,15 @@ public class DragSortListView extends ListView {
                     targetY = v.getBottom() + otherAdjust - mFloatViewHeight;
                 }
             } else {
-                // drop position is not on screen?? no animation
-                cancel();
+            	if (first > mDropPos){
+            		targetY = -getChildAt(first).getHeight();
+            	} else if (mDropPos > getLastVisiblePosition()){
+            		targetY = getHeight();
+            	} else {
+            		// drop position is not on screen?? no animation
+            		cancel();
+            		dropFloatView();
+            	}
             }
 
             return targetY;
@@ -1282,11 +1289,15 @@ public class DragSortListView extends ListView {
         @Override
         public void onUpdate(float frac, float smoothFrac) {
             final int targetY = getTargetY();
+            if (targetY == -1){
+            	return;
+            }
+            
             final int targetX = getPaddingLeft();
             final float deltaY = mFloatLoc.y - targetY;
             final float deltaX = mFloatLoc.x - targetX;
             final float f = 1f - smoothFrac;
-            if (f < Math.abs(deltaY / mInitDeltaY) || f < Math.abs(deltaX / mInitDeltaX)) {
+            if (f < Math.abs(mInitDeltaY != 0 ? deltaY / mInitDeltaY : 0) || f < Math.abs(mInitDeltaX != 0 ? deltaX / mInitDeltaX : 0)) {
                 mFloatLoc.y = targetY + (int) (mInitDeltaY * f);
                 mFloatLoc.x = getPaddingLeft() + (int) (mInitDeltaX * f);
                 doDragFloatView(true);

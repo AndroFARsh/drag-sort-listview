@@ -193,8 +193,8 @@ public class DragSortExpandableListView extends DragSortListView {
     // Bounds of the indicator to be drawn
     private final Rect mIndicatorRect = new Rect();
 
-	private DragChildValidateListener mDragChildValidateListener;
-
+    private final DragSortListenerImpl mListener;
+    
     public DragSortExpandableListView(Context context) {
         this(context, null);
     }
@@ -228,7 +228,11 @@ public class DragSortExpandableListView extends DragSortListView {
         
         a.recycle();
         
-        super.setDragValidateListener(new DragValidateListenerImpl());
+        mListener = new DragSortListenerImpl();
+		super.setDragValidateListener(mListener);
+		super.setRemoveListener(mListener);
+		super.setDropListener(mListener);
+		super.setDragListener(mListener);
     }
     
     @Override
@@ -238,7 +242,7 @@ public class DragSortExpandableListView extends DragSortListView {
     }
     
     public void setDragChildValidateListener(DragChildValidateListener dragChildValidateListener){
-		mDragChildValidateListener = dragChildValidateListener;
+		mListener.mDragChildValidateListener = dragChildValidateListener;
     }
     
     private int getGroupFlags() {
@@ -1159,12 +1163,73 @@ public class DragSortExpandableListView extends DragSortListView {
     	}
     }
     
-    interface DragChildValidateListener {
+    public interface DragChildValidateListener {
     	boolean isAllow(int srcGroup, int srcChild, int newProup, int newChild, DragSortListView list);
     }
     
-    class DragValidateListenerImpl implements DragValidateListener {
+    public interface DragChildListener {
+        public void drag(int group, int from, int to);
+    }
+    
+    public interface DropChildListener {
+        public void drop(int group, int from, int to);
+    }
 
+    public interface RemoveChildListener {
+        public void remove(int group, int which);
+    }
+
+    public interface DragSortChildListener extends DropChildListener, DragChildListener, RemoveChildListener {
+    }
+
+    public void setDragSortListener(DragSortChildListener l) {
+        setDropListener(l);
+        setDragListener(l);
+        setRemoveListener(l);
+    }
+    
+    public void setDropListener(DropChildListener l) {
+    	mListener.mDropChildListener = l;
+    }
+    
+    public void setDragListener(DragChildListener l) {
+    	mListener.mDragChildListener = l;
+    }
+    
+    
+    public void setRemoveListener(RemoveChildListener l) {
+    	mListener.mRemoveChildListener = l;
+    }
+
+    @Override
+    public void setDragSortListener(DragSortListener l) {
+    	throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public void setDropListener(DropListener l) {
+    	throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public void setDragListener(DragListener l) {
+    	throw new UnsupportedOperationException();
+    }
+    
+    
+    @Override
+    public void setRemoveListener(RemoveListener l) {
+    	throw new UnsupportedOperationException();
+    }
+
+    
+    class DragSortListenerImpl implements DragValidateListener, DragSortListener {
+    	
+    	private DragChildValidateListener mDragChildValidateListener;
+    	private DragChildListener mDragChildListener;
+    	private DropChildListener mDropChildListener;
+    	private RemoveChildListener mRemoveChildListener;
+    	    	
 		@Override
 		public boolean isAllow(int srcPos, int newPos, DragSortListView list) {
 			if (mConnector != null){
@@ -1190,6 +1255,40 @@ public class DragSortExpandableListView extends DragSortListView {
 			}
 			return false;
 		}
-    	
+
+		@Override
+		public void drop(int from, int to) {
+			if (mConnector != null){
+				final PositionMetadata fromUnfltPos = mConnector.getUnflattenedPos(from);
+				final PositionMetadata toUnfltPos = mConnector.getUnflattenedPos(to);
+				
+				if (fromUnfltPos.position.groupPos == toUnfltPos.position.groupPos && mDropChildListener != null){
+					mDropChildListener.drop(fromUnfltPos.position.groupPos, fromUnfltPos.position.childPos, toUnfltPos.position.childPos);	
+				}
+			}	
+		}
+
+		@Override
+		public void drag(int from, int to) {
+			if (mConnector != null){
+				final PositionMetadata fromUnfltPos = mConnector.getUnflattenedPos(from);
+				final PositionMetadata toUnfltPos = mConnector.getUnflattenedPos(to);
+				
+				if (fromUnfltPos.position.groupPos == toUnfltPos.position.groupPos && mDragChildListener != null){
+					mDragChildListener.drag(fromUnfltPos.position.groupPos, fromUnfltPos.position.childPos, toUnfltPos.position.childPos);	
+				}
+			}	
+		}
+
+		@Override
+		public void remove(int which) {
+			if (mConnector != null){
+				final PositionMetadata unfltPos = mConnector.getUnflattenedPos(which);
+				
+				if (mRemoveChildListener != null){
+					mRemoveChildListener.remove(unfltPos.position.groupPos, unfltPos.position.childPos);	
+				}
+			}	
+		}
     }
 }
