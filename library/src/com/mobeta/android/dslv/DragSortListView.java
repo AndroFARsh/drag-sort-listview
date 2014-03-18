@@ -530,15 +530,15 @@ public class DragSortListView extends ListView {
                         R.styleable.DragSortListView_float_background_color,
                         Color.BLACK);
 
-                DragSortController controller = new DragSortController(
+                mController = new DragSortController(
                         this, dragHandleId, dragInitMode, removeMode,
                         clickRemoveId, flingHandleId);
-                controller.setRemoveEnabled(removeEnabled);
-                controller.setSortEnabled(sortEnabled);
-                controller.setBackgroundColor(bgColor);
+                mController.setRemoveEnabled(removeEnabled);
+                mController.setSortEnabled(sortEnabled);
+                mController.setBackgroundColor(bgColor);
 
-                mFloatViewManager = controller;
-                setOnTouchListener(controller);
+                mFloatViewManager = mController;
+                setOnTouchListener(mController);
             }
 
             a.recycle();
@@ -1703,11 +1703,13 @@ public class DragSortListView extends ListView {
         mOffsetY = (int) ev.getRawY() - mY;
     }
 
-    public boolean listViewIntercepted() {
+    boolean listViewIntercepted() {
         return mListViewIntercepted;
     }
 
     private boolean mListViewIntercepted = false;
+
+	private DragSortController mController;
 
     @Override
     protected void onAttachedToWindow() {
@@ -1755,7 +1757,10 @@ public class DragSortListView extends ListView {
             // super's touch event canceled in startDrag
             intercept = true;
         } else {
-            if (super.onInterceptTouchEvent(ev)) {
+        	if (mController.isTwoFingers(ev)) {
+        		mListViewIntercepted = false;
+        		intercept = mController.onTouch(this, ev);;
+        	} else if (super.onInterceptTouchEvent(ev)) {
                 mListViewIntercepted = true;
                 intercept = true;
             }

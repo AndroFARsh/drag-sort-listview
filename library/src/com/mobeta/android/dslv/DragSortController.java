@@ -205,7 +205,6 @@ public class DragSortController extends SimpleFloatViewManager implements View.O
 		});
         
         mFlingRemoveDetector = new GestureDetectorCompat(dslv.getContext(), mFlingRemoveListener);
-        mFlingRemoveDetector.setIsLongpressEnabled(false);
         mTouchSlop = ViewConfiguration.get(dslv.getContext()).getScaledTouchSlop();
         mDragHandleId = dragHandleId;
         mClickRemoveId = clickRemoveId;
@@ -325,6 +324,13 @@ public class DragSortController extends SimpleFloatViewManager implements View.O
         return mDragging;
     }
 
+    public boolean isTwoFingers(MotionEvent ev) {
+   		if ((mDragInitMode & TWO_FINGERS_MASK) > 0){
+   			return ev.getPointerCount() == 2;
+   		}
+    	return false;
+    }
+    
     @Override
     public boolean onTouch(View v, MotionEvent ev) {
     	if (!mDslv.isDragEnabled() || mDslv.listViewIntercepted()) {
